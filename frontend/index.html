@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetMind AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+
+  <div class="bg"></div>
+
+  <div class="app">
+
+    <!-- Navbar -->
+    <nav>
+      <a href="index.html" class="logo">
+        <div class="logo-text">
+          <h1>MeetMind AI</h1>
+          <p>Smart Meeting Assistant</p>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#"><b>Launch Meeting</b></a></li>
+      </ul>
+    </nav>
+
+    <!-- Body row -->
+    <div class="body-row">
+
+      <!-- LEFT SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Meeting History</h2>
+        </div>
+        <div class="sidebar-list" id="sidebarList">
+          <p class="sidebar-empty" id="sidebarEmpty">No history yet</p>
+        </div>
+      </aside>
+
+      <!-- RIGHT: Meeting Summary -->
+      <main class="summary-area">
+
+        <section class="summary-card">
+          <div class="summary-header">
+            <span id="sectionTitle">Meeting Summary</span>
+          </div>
+          <div class="summary-content" id="summaryContent"></div>
+          <div class="summary-actions">
+            <button class="download-btn" id="downloadBtn" type="button">
+              <div class="dl-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M12 2a7 7 0 0 1 7 7c0 2.3-.9 4.4-2.4 5.9L18 21H6l1.4-6.1A7 7 0 0 1 12 2z" />
+                  <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+              Download Summary
+            </button>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+</body>
+
+</html>
