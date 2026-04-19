@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetMind AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── Sky Background ────────────────────────────── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(160deg,
+        #d8c9f0 0%, #c9d8f5 20%, #b8d4f8 40%,
+        #c2d8f7 55%, #d4d9f5 70%, #e8c9ef 85%, #f0cce8 100%);
+    }
+    .bg::before, .bg::after {
+      content: ''; position: absolute;
+      border-radius: 50%; filter: blur(80px); opacity: 0.45;
+    }
+    .bg::before {
+      width: 700px; height: 400px; top: 10%; left: -10%;
+      background: radial-gradient(ellipse, #f5d0f0 0%, transparent 70%);
+      animation: drift1 18s ease-in-out infinite alternate;
+    }
+    .bg::after {
+      width: 600px; height: 350px; bottom: 5%; right: -5%;
+      background: radial-gradient(ellipse, #b8e0ff 0%, transparent 70%);
+      animation: drift2 22s ease-in-out infinite alternate;
+    }
+    @keyframes drift1 { from{transform:translate(0,0) rotate(-3deg)} to{transform:translate(40px,20px) rotate(3deg)} }
+    @keyframes drift2 { from{transform:translate(0,0) rotate(2deg)}  to{transform:translate(-30px,15px) rotate(-2deg)} }
+
+    /* ─── App Shell ─────────────────────────────────── */
+    .app {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      height: 100vh;
+      max-width: 1380px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 18px;
+    }
+
+    /* ─── Navbar ────────────────────────────────────── */
+    nav {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 20px 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.45);
+      flex-shrink: 0;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 50px; height: 50px; border-radius: 13px;
+      background: linear-gradient(135deg, #7b6cf0 0%, #a78bfa 50%, #ec8ef0 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(123,108,240,0.35);
+    }
+    .logo-icon svg { width: 28px; height: 28px; }
+    .logo-text h1 { font-size:1.3rem; font-weight:700; color:#1e1b4b; letter-spacing:-.3px; }
+    .logo-text p  { font-size:0.7rem; font-weight:400; color:#6b7280; margin-top:1px; }
+    .nav-links { display:flex; gap:34px; list-style:none; }
+    .nav-links a { font-size:0.93rem; font-weight:500; color:#374151; text-decoration:none; transition:color .2s; }
+    .nav-links a:hover { color:#7b6cf0; }
+
+    /* ─── Body Row ───────────────────────────────────── */
+    .body-row {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      padding: 20px 0 22px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ─── LEFT SIDEBAR ──────────────────────────────── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 4px 6px;
+    }
+    .sidebar-header h2 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+    .new-chat-btn {
+      width: 28px; height: 28px; border: none; border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7b6cf0, #a78bfa);
+      color: #fff; font-size: 1.3rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(123,108,240,0.35);
+      transition: transform .15s, filter .15s;
+    }
+    .new-chat-btn:hover { filter: brightness(1.1); transform: scale(1.08); }
+
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding-right: 3px;
+    }
+    .sidebar-list::-webkit-scrollbar { width: 4px; }
+    .sidebar-list::-webkit-scrollbar-thumb { background: rgba(123,108,240,0.22); border-radius: 99px; }
+
+    .history-item {
+      padding: 11px 13px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.52);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.72);
+      cursor: pointer;
+      transition: background .18s, transform .15s, box-shadow .18s;
+      animation: fadeUp .25s ease both;
+    }
+    .history-item:hover {
+      background: rgba(255,255,255,0.8);
+      transform: translateX(4px);
+      box-shadow: 0 4px 16px rgba(100,90,200,0.1);
+    }
+    .history-item.active {
+      background: rgba(255,255,255,0.9);
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 4px 18px rgba(123,108,240,0.16);
+      transform: translateX(4px);
+    }
+    .hi-date {
+      font-size: 0.81rem; font-weight: 600; color: #1e1b4b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hi-time {
+      font-size: 0.7rem; font-weight: 500; color: #7b6cf0; margin-top: 2px;
+    }
+    .hi-preview {
+      font-size: 0.71rem; color: #9ca3af; margin-top: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-empty {
+      font-size: 0.74rem; color: #9ca3af;
+      text-align: center; padding: 22px 8px; display: none;
+    }
+
+    /* ─── RIGHT: Chat Area ──────────────────────────── */
+    .chat-area {
+      flex: 1; display: flex;
+      flex-direction: column;
+      gap: 14px; min-width: 0;
+    }
+
+    .chat-card {
+      flex: 1;
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.85);
+      box-shadow: 0 8px 40px rgba(100,90,200,0.12), 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+
+    .chat-header {
+      padding: 15px 26px;
+      border-bottom: 1px solid rgba(200,200,230,0.4);
+      text-align: center; flex-shrink: 0;
+    }
+    .chat-header span { font-size:0.9rem; font-weight:600; color:#374151; }
+    .chat-header span em { font-style:normal; font-weight:400; color:#6b7280; }
+
+    .chat-messages {
+      flex: 1; min-height: 0;
+      padding: 22px 24px 12px;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      gap: 13px; scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 5px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(123,108,240,0.25); border-radius: 99px; }
+
+    .msg { display:flex; gap:10px; animation: fadeUp .3s ease both; }
+    @keyframes fadeUp {
+      from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)}
+    }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-bubble {
+      max-width: 72%; padding: 11px 15px;
+      border-radius: 18px; font-size: 0.87rem; line-height: 1.55;
+    }
+    .msg.ai  .msg-bubble {
+      background: rgba(255,255,255,0.9); color: #1f2937;
+      border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .msg.user .msg-bubble {
+      background: linear-gradient(135deg, #7b6cf0, #a78bfa); color: #fff;
+      border-bottom-right-radius: 5px; box-shadow: 0 2px 10px rgba(123,108,240,0.35);
+    }
+
+    .typing-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 8px 0 10px;
+      color: #374151; font-size: 0.86rem; font-weight: 500; flex-shrink: 0;
+    }
+    .typing-row.hidden { display: none; }
+    .dots { display:flex; gap:5px; align-items:center; }
+    .dots span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #7b6cf0; display: inline-block;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dots span:nth-child(2) { animation-delay:.2s; background:#a78bfa; }
+    .dots span:nth-child(3) { animation-delay:.4s; background:#ec8ef0; }
+    @keyframes bounce {
+      0%,80%,100%{transform:translateY(0);opacity:.6} 40%{transform:translateY(-6px);opacity:1}
+    }
+
+    .chat-input-row {
+      display: flex; gap: 11px;
+      padding: 11px 16px 16px; flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1; padding: 13px 16px;
+      font-family: inherit; font-size: 0.88rem;
+      border: 1.5px solid rgba(200,200,240,0.6); border-radius: 12px;
+      background: rgba(255,255,255,0.85); color: #1f2937; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .chat-input::placeholder { color: #9ca3af; }
+    .chat-input:focus {
+      border-color: #a78bfa;
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.18);
+    }
+    .send-btn {
+      padding: 13px 26px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, #4f72d6, #3a62c8); color: #fff;
+      font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(74,102,210,0.4);
+      transition: transform .15s, filter .2s;
+    }
+    .send-btn:hover  { filter: brightness(1.08); transform: translateY(-1px); }
+    .send-btn:active { transform: translateY(0); }
+
+    /* ─── Download Button ───────────────────────────── */
+    .download-btn {
+      display: flex; align-items: center; gap: 11px;
+      padding: 13px 0; justify-content: center;
+      background: rgba(255,255,255,0.78); backdrop-filter: blur(10px);
+      border-radius: 14px; border: 1.5px solid rgba(255,255,255,0.9);
+      font-family: inherit; font-size: 0.95rem; font-weight: 600;
+      color: #1e1b4b; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(100,90,200,0.1);
+      transition: transform .18s, box-shadow .18s, background .2s;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(100,90,200,0.18);
+      background: rgba(255,255,255,0.9);
+    }
+    .dl-icon {
+      width: 33px; height: 33px; border-radius: 50%;
+      background: linear-gradient(135deg, #7b6cf0, #ec8ef0);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 10px rgba(123,108,240,0.35); flex-shrink: 0;
+    }
+    .dl-icon svg { width: 16px; height: 16px; color: #fff; }
+  </style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="app">
+
+  <!-- Navbar -->
+  <nav>
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 8C15 8 11 12 11 17c0 2.5 1 4.8 2.6 6.4L12 30h16l-1.6-6.6C28 21.8 29 19.5 29 17c0-5-4-9-9-9z"
+                fill="rgba(255,255,255,0.3)" stroke="white" stroke-width="1.5"/>
+          <circle cx="20" cy="17" r="3.5" fill="white" opacity=".9"/>
+          <line x1="20" y1="13.5" x2="20" y2="9"   stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="16.5" y1="15" x2="13" y2="13"  stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="23.5" y1="15" x2="27" y2="13"  stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="16.5" y1="19" x2="13" y2="21"  stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="23.5" y1="19" x2="27" y2="21"  stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h1>MeetMind AI</h1>
+        <p>Smart AI with Long-Term Memory</p>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Launch Meeting</a></li>
+    </ul>
+  </nav>
+
+  <!-- Body row -->
+  <div class="body-row">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Chat History</h2>
+        <button class="new-chat-btn" id="newChatBtn" title="New chat">+</button>
+      </div>
+      <div class="sidebar-list" id="sidebarList">
+        <p class="sidebar-empty" id="sidebarEmpty">No history yet</p>
+      </div>
+    </aside>
+
+    <!-- RIGHT: Chat -->
+    <div class="chat-area">
+
+      <div class="chat-card">
+        <div class="chat-header">
+          <span>Chat History Loaded <em>– Memory Active</em></span>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="typing-row hidden" id="typingRow">
+          AI is typing
+          <div class="dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chatInput"
+                 placeholder="Type your message..." autocomplete="off" />
+          <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <a href="#" class="download-btn" id="downloadBtn">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a7 7 0 0 1 7 7c0 2.3-.9 4.4-2.4 5.9L18 21H6l1.4-6.1A7 7 0 0 1 12 2z"/>
+            <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        Download Summary
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const chatMessages = document.getElementById('chatMessages');
+  const typingRow    = document.getElementById('typingRow');
+  const chatInput    = document.getElementById('chatInput');
+  const sendBtn      = document.getElementById('sendBtn');
+  const downloadBtn  = document.getElementById('downloadBtn');
+  const sidebarList  = document.getElementById('sidebarList');
+  const sidebarEmpty = document.getElementById('sidebarEmpty');
+  const newChatBtn   = document.getElementById('newChatBtn');
+
+  const AI_REPLIES = [
+    "Hello! I remember our previous conversations. How can I help you today?",
+    "Based on what we've discussed before, I think I can assist you with that.",
+    "Great question! Let me recall the context from our earlier sessions…",
+    "I've noted this in your long-term memory profile. Here's what I suggest:",
+    "Thanks for reaching out! I have your history loaded and ready to go.",
+    "That's a fascinating topic. I can cross-reference this with our past chats.",
+    "Memory active — I can see our full conversation timeline. Go ahead!",
+    "I've retrieved your context. What would you like to explore today?"
+  ];
+  let replyIndex = 0;
+  let sessions = [];
+  let activeId  = null;
+
+  function fmtDT(date) {
+    return {
+      dateLabel: date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
+      timeLabel: date.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })
+    };
+  }
+
+  function scrollBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+  function showTyping()   { typingRow.classList.remove('hidden'); scrollBottom(); }
+  function hideTyping()   { typingRow.classList.add('hidden'); }
+
+  function renderSidebar() {
+    sidebarList.querySelectorAll('.history-item').forEach(el => el.remove());
+    if (sessions.length === 0) { sidebarEmpty.style.display = 'block'; return; }
+    sidebarEmpty.style.display = 'none';
+
+    [...sessions].reverse().forEach(session => {
+      const item = document.createElement('div');
+      item.className = 'history-item' + (session.id === activeId ? ' active' : '');
+      const firstUser = session.messages.find(m => m.role === 'user');
+      const preview   = firstUser ? firstUser.text : 'New conversation';
+      item.innerHTML = `
+        <div class="hi-date">${session.dateLabel}</div>
+        <div class="hi-time">${session.timeLabel}</div>
+        <div class="hi-preview">${preview}</div>
+      `;
+      item.addEventListener('click', () => loadSession(session.id));
+      sidebarList.appendChild(item);
+    });
+  }
+
+  function loadSession(id) {
+    activeId = id;
+    const session = sessions.find(s => s.id === id);
+    if (!session) return;
+    chatMessages.innerHTML = '';
+    hideTyping();
+    session.messages.forEach(({ role, text }) => {
+      const msg = document.createElement('div');
+      msg.className = `msg ${role}`;
+      msg.style.animation = 'none';
+      msg.innerHTML = `<div class="msg-bubble">${text}</div>`;
+      chatMessages.appendChild(msg);
+    });
+    scrollBottom();
+    renderSidebar();
+  }
+
+  function createSession() {
+    const now = new Date();
+    const { dateLabel, timeLabel } = fmtDT(now);
+    const id = now.getTime() + Math.random();
+    sessions.push({ id, dateLabel, timeLabel, messages: [] });
+    activeId = id;
+    chatMessages.innerHTML = '';
+    hideTyping();
+    renderSidebar();
+    return id;
+  }
+
+  function addMessage(text, role) {
+    if (!activeId) createSession();
+    const session = sessions.find(s => s.id === activeId);
+    if (session) session.messages.push({ role, text });
+    const msg = document.createElement('div');
+    msg.className = `msg ${role}`;
+    msg.innerHTML = `<div class="msg-bubble">${text}</div>`;
+    chatMessages.appendChild(msg);
+    scrollBottom();
+    renderSidebar();
+  }
+
+  function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    sendBtn.disabled = true;
+    addMessage(text, 'user');
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      addMessage(AI_REPLIES[replyIndex % AI_REPLIES.length], 'ai');
+      replyIndex++;
+      sendBtn.disabled = false;
+      chatInput.focus();
+    }, 1100 + Math.random() * 900);
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  newChatBtn.addEventListener('click', () => { createSession(); chatInput.focus(); });
+
+  downloadBtn.addEventListener('click', e => {
+    e.preventDefault();
+    const session = sessions.find(s => s.id === activeId);
+    if (!session || session.messages.length === 0) { alert('No conversation to download yet.'); return; }
+    const lines = session.messages.map(c => `[${c.role.toUpperCase()}]: ${c.text}`).join('\n');
+    const blob  = new Blob(
+      [`MeetMind AI – Conversation Summary\nDate: ${session.dateLabel} at ${session.timeLabel}\n${'='.repeat(44)}\n\n${lines}`],
+      { type: 'text/plain' }
+    );
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `meetmind-${session.dateLabel.replace(/\s/g,'-')}_${session.timeLabel.replace(':','-')}.txt`;
+    a.click();
+  });
+
+  // Seed demo past sessions
+  const demoData = [
+    { hoursAgo: 52, q: "What's my project status?",           a: "Based on our last talk, your project is on track for Friday's deadline. The main blocker was the API integration, which you mentioned resolving." },
+    { hoursAgo: 27, q: "Remind me of the meeting notes.",     a: "I have your notes from Tuesday's sync. Key action items: finalize designs by Thursday, schedule QA review, and send the stakeholder update." },
+    { hoursAgo: 1,  q: "How does long-term memory work here?", a: "I summarize each session and surface relevant context automatically. Every conversation is stored and can be recalled at any time." },
+  ];
+  demoData.forEach(({ hoursAgo, q, a }) => {
+    const t = new Date(Date.now() - hoursAgo * 3600 * 1000);
+    const { dateLabel, timeLabel } = fmtDT(t);
+    sessions.unshift({ id: t.getTime(), dateLabel, timeLabel, messages:[{role:'user',text:q},{role:'ai',text:a}] });
+  });
+
+  // Boot current session
+  createSession();
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    addMessage("Hello! I'm MeetMind AI. Your chat history is loaded and memory is active. How can I help you?", 'ai');
+  }, 2000);
+</script>
+</body>
+</html>
